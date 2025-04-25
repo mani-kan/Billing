@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GANDIVALASA INTERNET & DTP WORKS</title>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+    select, input, button {
+      padding: 10px;
+      margin: 5px 0;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    #itemsList {
+      margin-top: 20px;
+    }
+    #qrcode {
+      margin-top: 20px;
+      text-align: center;
+    }
+    table {
+      width: 100%;
+      margin-top: 10px;
+      border-collapse: collapse;
+    }
+    table, th, td {
+      border: 1px solid gray;
+      padding: 8px;
+      text-align: center;
+    }
+    #generateQRBtn, #resetBtn, #printBillBtn {
+      margin-top: 20px;
+      font-weight: bold;
+    }
+    #generateQRBtn {
+      background-color: green;
+      color: white;
+    }
+    #resetBtn {
+      background-color: red;
+      color: white;
+    }
+    #printBillBtn {
+      background-color: blue;
+      color: white;
+    }
+    #billSection {
+      display: none;
+      margin-top: 30px;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>GANDIVALASA INTERNET & DTP WORKS</h2>
+
+  <select id="itemSelect">
+    <option value="" disabled selected>Select Service</option>
+    <option value="Black&White Xerox">Black & White Xerox (₹3)</option>
+    <option value="Colour Xerox">Colour Xerox (₹5)</option>
+    <option value="Online Applications">Online Applications (₹50)</option>
+    <option value="Pancard Apply">Pancard Apply (₹200)</option>
+    <option value="4 Passport Size Photos">4 Passport Size Photos (₹40)</option>
+    <option value="8 Passport Size Photos">8 Passport Size Photos (₹70)</option>
+    <option value="Online Black&White Print">Online Black & White Print (₹10)</option>
+    <option value="Online Colour Print">Online Colour Print (₹20)</option>
+    <option value="A4 Size Lamination">A4 Size Lamination (₹30)</option>
+    <option value="ID Size Lamination">ID Size Lamination (₹20)</option>
+  </select>
+
+  <input type="number" id="itemQty" placeholder="Enter Quantity" min="1">
+
+  <button onclick="addItem()">Add Service</button>
+
+  <div id="itemsList">
+    <h3>Services</h3>
+    <table id="itemsTable">
+      <thead>
+        <tr>
+          <th>Service</th>
+          <th>Quantity</th>
+          <th>Price (₹)</th>
+          <th>Subtotal (₹)</th>
+        </tr>
+      </thead>
+      <tbody>
+      </tbody>
+    </table>
+    <h3>Total: ₹<span id="totalAmount">0</span></h3>
+  </div>
+
+  <button id="generateQRBtn" onclick="generatePaymentQR()">Generate Payment QR</button>
+  <button id="printBillBtn" onclick="printBill()">Print Bill</button>
+  <button id="resetBtn" onclick="resetBilling()">Reset</button>
+
+  <div id="qrcode"></div>
+
+  <div id="billSection">
+    <h2>Customer Bill</h2>
+    <div id="billContent"></div>
+  </div>
+
+  <script>
+    const itemPrices = {
+      "Black&White Xerox": 3,
+      "Colour Xerox": 5,
+      "Online Applications": 50,
+      "Pancard Apply": 200,
+      "4 Passport Size Photos": 40,
+      "8 Passport Size Photos": 70,
+      "Online Black&White Print": 10,
+      "Online Colour Print": 20,
+      "A4 Size Lamination": 30,
+      "ID Size Lamination": 20
+    };
+
+    let cart = [];
+    let total = 0;
+    const receiverUPI = "gandivalasamanikanta@ibl";
+
+    function addItem() {
+      const selectedItem = document.getElementById('itemSelect').value;
+      const qty = parseInt(document.getElementById('itemQty').value);
+
+      if (!selectedItem || isNaN(qty) || qty <= 0) {
+        alert('Please select a service and enter valid quantity');
+        return;
+      }
+
+      const price = itemPrices[selectedItem];
+      const subtotal = price * qty;
+
+      cart.push({ name: selectedItem, qty, price, subtotal });
+      total += subtotal;
+
+      updateItemsTable();
+      clearInputs();
+    }
+
+    function updateItemsTable() {
+      const tableBody = document.getElementById('itemsTable').getElementsByTagName('tbody')[0];
+      tableBody.innerHTML = '';
+
+      cart.forEach(item => {
+        const row = tableBody.insertRow();
+        const cell1 = row.insertCell(0);
+        const cell2 = row.insertCell(1);
+        const cell3 = row.insertCell(2);
+        const cell4 = row.insertCell(3);
+
+        cell1.innerText = item.name;
+        cell2.innerText = item.qty;
+        cell3.innerText = item.price.toFixed(2);
+        cell4.innerText = item.subtotal.toFixed(2);
+      });
+
+      document.getElementById('totalAmount').innerText = total.toFixed(2);
+    }
+
+    function clearInputs() {
+      document.getElementById('itemSelect').selectedIndex = 0;
+      document.getElementById('itemQty').value = '';
+    }
+
+    function generatePaymentQR() {
+  if (total === 0) {
+    alert('Please add services first!');
+    return;
+  }
+
+  const receiverUPI = "gandivalasamanikanta@ibl";  // replace with your UPI ID
+  const name = "GANDIVALASA INTERNET & DTP WORKS";
+  const amount = total.toFixed(2);
+  const currency = "INR";
+  const note = "Billing Payment";
+
+  const upiLink = `upi://pay?pa=${encodeURIComponent(receiverUPI)}&pn=${encodeURIComponent(name)}&am=${amount}&cu=${currency}&tn=${encodeURIComponent(note)}`;
+
+  const qrcodeDiv = document.getElementById('qrcode');
+  qrcodeDiv.innerHTML = '';
+
+  QRCode.toDataURL(upiLink, { width: 250, margin: 2 }, function (err, url) {
+    if (err) {
+      console.error(err);
+      alert('Failed to generate QR code!');
+      return;
+    }
+    const img = document.createElement('img');
+    img.src = url;
+    img.alt = "UPI Payment QR";
+    qrcodeDiv.appendChild(img);
+  });
+}
+
+    function resetBilling() {
+      cart = [];
+      total = 0;
+      document.getElementById('itemsTable').getElementsByTagName('tbody')[0].innerHTML = '';
+      document.getElementById('totalAmount').innerText = '0';
+      document.getElementById('qrcode').innerHTML = '';
+      document.getElementById('billContent').innerHTML = '';
+      document.getElementById('billSection').style.display = 'none';
+      clearInputs();
+    }
+
+    function printBill() {
+  if (cart.length === 0) {
+    alert('Please add services first!');
+    return;
+  }
+  
+  let billHtml = `
+    <div style="text-align:center; font-family:monospace;">
+      <h2 style="margin:0;">GANDIVALASA INTERNET & DTP WORKS</h2>
+      <p style="margin:0;">Main Street,Komera Village,AP-532440</p>
+      <p style="margin:0;">Contact: +91 6303973393</p>
+      <hr>
+    </div>
+    <div style="font-family:monospace; font-size:14px;">
+      <table style="width:100%; border-collapse:collapse;">
+        <thead>
+          <tr>
+            <th style="text-align:left;">Item</th>
+            <th style="text-align:center;">Qty</th>
+            <th style="text-align:right;">Price (₹)</th>
+            <th style="text-align:right;">Subtotal (₹)</th>
+          </tr>
+        </thead>
+        <tbody>
+  `;
+
+  cart.forEach(item => {
+    billHtml += `
+      <tr>
+        <td>${item.name}</td>
+        <td style="text-align:center;">${item.qty}</td>
+        <td style="text-align:right;">${item.price.toFixed(2)}</td>
+        <td style="text-align:right;">${item.subtotal.toFixed(2)}</td>
+      </tr>
+    `;
+  });
+
+  billHtml += `
+        </tbody>
+      </table>
+      <hr>
+      <h3 style="text-align:right;">Total: ₹${total.toFixed(2)}</h3>
+      <p style="text-align:center;">Thank you for shopping!</p>
+    </div>
+  `;
+
+  // Open a new window for printing only the bill
+  const billWindow = window.open('', '', 'width=400,height=600');
+  billWindow.document.write('<html><head><title>Bill</title></head><body>');
+  billWindow.document.write(billHtml);
+  billWindow.document.write('</body></html>');
+  billWindow.document.close();
+  billWindow.focus();
+  billWindow.print();
+  billWindow.close();
+}
+
+
+
+  </script>
+
+</body>
+</html>
